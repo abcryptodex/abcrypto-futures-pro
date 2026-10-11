@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABCRYPTO FUTURES PRO</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#f4f7ff;font-family:Arial,sans-serif}
+header{padding:22px 16px;background:#121a30;border-bottom:1px solid #263451}
+header h1{margin:0;color:#00e0a4;font-size:23px}
+header p{color:#9eacc8;margin-bottom:0}
+main{max-width:700px;margin:auto;padding:16px}
+.card{background:#121a30;padding:18px;border:1px solid #263451;border-radius:15px;margin-bottom:16px}
+h2{font-size:18px;margin-top:0}
+label{display:block;color:#b8c5dd;font-size:13px;margin:12px 0 6px}
+input,select{width:100%;padding:12px;border-radius:8px;border:1px solid #334363;background:#0b1020;color:white;font-size:15px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{border:0;border-radius:9px;padding:12px;font-weight:bold;cursor:pointer}
+.tabs{display:flex;gap:10px;margin-bottom:12px}
+.tabs button{flex:1;background:#263451;color:white}
+.tabs button.active{background:#00e0a4;color:#06150f}
+.primary{background:#00e0a4;color:#06150f;width:100%;margin-top:16px;font-size:16px}
+.result{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.metric{padding:13px;background:#0b1020;border-radius:9px;overflow-wrap:anywhere}
+.metric small{display:block;color:#9eacc8;margin-bottom:7px}
+.metric strong{font-size:18px;color:#00e0a4}
+.note{font-size:12px;color:#9eacc8;line-height:1.6}
+#history li{margin:10px 0;overflow-wrap:anywhere}
+.danger{background:#4a2430;color:#ffdbe3}
+footer{text-align:center;color:#8090ae;padding:18px;font-size:12px}
+@media(max-width:420px){.row{grid-template-columns:1fr}.result{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>ABCRYPTO FUTURES PRO</h1>
+<p>Futures Calculator · Risk Management · Trade Journal</p>
+</header>
+<main>
+<section class="card">
+<h2>Exchange</h2>
+<select id="exchange">
+<option>MEXC</option><option>Binance</option><option>Bitunix</option>
+<option>KuCoin</option><option>Bybit</option><option>Gate.io</option>
+<option>BingX</option><option>WEEX</option><option>OKX</option>
+<option>Other Exchange</option>
+</select>
+<p class="note">Exchange selection is for organizing your calculations. This app does not connect to exchange accounts or place trades.</p>
+</section>
+
+<section class="card">
+<h2>Futures Calculator</h2>
+<div class="tabs">
+<button id="longBtn" class="active" onclick="setSide('LONG')">LONG</button>
+<button id="shortBtn" onclick="setSide('SHORT')">SHORT</button>
+</div>
+<div class="row">
+<div><label>Entry Price ($)</label><input id="entry" type="number" placeholder="e.g. 100" step="any"></div>
+<div><label>Stop Loss Price ($)</label><input id="sl" type="number" placeholder="e.g. 95" step="any"></div>
+<div><label>Take Profit Price ($)</label><input id="tp" type="number" placeholder="e.g. 115" step="any"></div>
+<div><label>Capital / Margin ($)</label><input id="capital" type="number" placeholder="e.g. 100" step="any"></div>
+<div><label>Leverage</label><select id="leverage">
+<option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>20</option><option>25</option><option>50</option><option>75</option><option>100</option>
+</select></div>
+<div><label>Risk (% of capital)</label><input id="risk" type="number" value="1" min="0.01" max="100" step="any"></div>
+<div><label>Trading Fee (%) per side</label><input id="fee" type="number" value="0.05" min="0" step="any"></div>
+<div><label>Break-Even Trigger (R)</label><input id="beR" type="number" value="2" min="0.1" step="any"></div>
+</div>
+<button class="primary" onclick="calculate()">CALCULATE TRADE</button>
+<div id="warning" class="note" role="status" style="margin-top:12px"></div>
+<div class="result">
+<div class="metric"><small>Position Size</small><strong id="position">—</strong></div>
+<div class="metric"><small>Risk Amount</small><strong id="riskCash">—</strong></div>
+<div class="metric"><small>Potential Loss at SL</small><strong id="loss">—</strong></div>
+<div class="metric"><small>Potential Profit at TP</small><strong id="profit">—</strong></div>
+<div class="metric"><small>Risk : Reward</small><strong id="rr">—</strong></div>
+<div class="metric"><small>Break-Even Price</small><strong id="be">—</strong></div>
+<div class="metric"><small>Estimated Fees (Round Trip)</small><strong id="fees">—</strong></div>
+<div class="metric"><small>Margin Required</small><strong id="margin">—</strong></div>
+</div>
+<p class="note">Estimates assume a linear price move and a linear contract. Actual results vary by contract type, exchange rules, funding, fees, slippage and liquidation mechanics. Break-even includes estimated round-trip fees.</p>
+</section>
+
+<section class="card">
+<h2>Trade Journal</h2>
+<label>Trading Pair</label><input id="pair" placeholder="e.g. BTCUSDT">
+<label>Trade Result</label>
+<select id="outcome"><option>Win</option><option>Loss</option><option>Breakeven</option></select>
+<label>Realized PnL ($)</label><input id="realized" type="number" step="any" placeholder="e.g. 25 or -10">
+<label>Trade Notes</label><input id="notes" placeholder="Reason for entry / lessons learned">
+<button class="primary" onclick="saveTrade()">SAVE TRADE</button>
+</section>
+
+<section class="card">
+<h2>Trading History</h2>
+<div class="result">
+<div class="metric"><small>Total Trades</small><strong id="total">0</strong></div>
+<div class="metric"><small>Win Rate</small><strong id="winrate">0%</strong></div>
+<div class="metric"><small>Net Realized PnL</small><strong id="net">$0.00</strong></div>
+<div class="metric"><small>Wins / Losses</small><strong id="wl">0 / 0</strong></div>
+</div>
+<ul id="history"></ul>
+<button class="danger" onclick="clearHistory()">CLEAR HISTORY</button>
+<p class="note">Journal entries are stored in this browser on this device. They are not automatically synced to Telegram or another device.</p>
+</section>
+</main>
+<footer>ABCRYPTO FUTURES PRO · Trade with a plan. Protect your capital.</footer>
+
+<script>
+let side='LONG';
+let lastCalculation=null;
+const $=id=>document.getElementById(id);
+const money=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function setSide(s){
+ side=s;
+ $('longBtn').classList.toggle('active',s==='LONG');
+ $('shortBtn').classList.toggle('active',s==='SHORT');
+}
+function calculate(){
+ const entry=+$('entry').value, sl=+$('sl').value, tp=+$('tp').value;
+ const capital=+$('capital').value, lev=+$('leverage').value;
+ const riskPct=+$('risk').value, feePct=+$('fee').value;
+ const beR=+$('beR').value;
+ $('warning').textContent='';
+ if(![entry,sl,tp,capital,lev,riskPct,feePct,beR].every(Number.isFinite)||
+ entry<=0||sl<=0||tp<=0||capital<=0||lev<=0||riskPct<=0||riskPct>100||feePct<0||beR<=0){
+  $('warning').textContent='Please enter valid positive values and check the risk percentage.';
+  return;
+ }
+ const valid=side==='LONG'?(sl<entry&&tp>entry):(sl>entry&&tp<entry);
+ if(!valid){$('warning').textContent='Check your prices: LONG requires SL < Entry < TP; SHORT requires TP < Entry < SL.';return;}
+ const riskDistance=Math.abs(entry-sl)/entry;
+ const riskCash=capital*riskPct/100;
+ const qty=riskCash/Math.abs(entry-sl);
+ const notional=qty*entry;
+ const margin=notional/lev;
+ const grossProfit=qty*Math.abs(tp-entry);
+ const grossLoss=riskCash;
+ const fees=notional*feePct/100+qty*tp*feePct/100;
+ const netProfit=grossProfit-fees;
+ const netLoss=grossLoss+(qty*sl*feePct/100)+(notional*feePct/100);
+ const be=side==='LONG'?entry*(1+(2*feePct/100)/(1-feePct/100)):entry*(1-(2*feePct/100)/(1+feePct/100));
+ const beTrigger=side==='LONG'?entry+(Math.abs(entry-sl)*beR):entry-(Math.abs(entry-sl)*beR);
+ $('position').textContent=money(notional);
+ $('riskCash').textContent=money(riskCash);
+ $('loss').textContent=money(netLoss);
+ $('profit').textContent=money(netProfit);
+ $('rr').textContent='1 : '+(grossProfit/grossLoss).toFixed(2);
+ $('be').textContent=money(be);
+ $('fees').textContent=money(fees);
+ $('margin').textContent=money(margin);
+ $('warning').textContent=margin>capital?'Warning: Required margin exceeds your capital at this leverage. Reduce position size or risk.':'BE trigger at '+money(beTrigger)+'. Estimates exclude funding and liquidation fees.';
+ lastCalculation={side,exchange:$('exchange').value,entry,sl,tp,capital,lev,riskCash,notional,margin,beTrigger};
+}
+function getTrades(){try{return JSON.parse(localStorage.getItem('abcryptoFuturesTrades')||'[]')}catch(e){return []}}
+function saveTrade(){
+ const pnl=$('realized').value;
+ if(pnl===''||!Number.isFinite(+pnl)){alert('Enter your realized PnL first.');return;}
+ const trades=getTrades();
+ trades.unshift({date:new Date().toLocaleString(),exchange:$('exchange').value,pair:$('pair').value||'Not specified',outcome:$('outcome').value,pnl:+pnl,notes:$('notes').value,side:lastCalculation?.side||side});
+ try{localStorage.setItem('abcryptoFuturesTrades',JSON.stringify(trades));renderHistory();$('realized').value='';$('notes').value='';}
+ catch(e){alert('Unable to save. Your browser storage may be full or unavailable.');}
+}
+function renderHistory(){
+ const trades=getTrades(), wins=trades.filter(t=>t.outcome==='Win').length, losses=trades.filter(t=>t.outcome==='Loss').length;
+ $('total').textContent=trades.length;
+ $('winrate').textContent=(trades.length?wins/trades.length*100:0).toFixed(1)+'%';
+ $('net').textContent=money(trades.reduce((a,t)=>a+t.pnl,0));
+ $('wl').textContent=wins+' / '+losses;
+ $('history').replaceChildren();
+ trades.slice(0,50).forEach(t=>{
+  const li=document.createElement('li');
+  li.textContent=`${t.date} · ${t.exchange} · ${t.pair} · ${t.outcome} · ${money(t.pnl)}${t.notes?' · '+t.notes:''}`;
+  $('history').appendChild(li);
+ });
+}
+function clearHistory(){
+ if(confirm('Delete all saved trade journal entries from this browser?')){
+  localStorage.removeItem('abcryptoFuturesTrades');renderHistory();
+ }
+}
+renderHistory();
+</script>
+</body>
+</html>
